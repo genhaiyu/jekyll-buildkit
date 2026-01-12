@@ -1,38 +1,39 @@
-# A script to automatically initial or deploy a Jekyll blog on Linux
+# A stable Jekyll build runtime for Ubuntu
 
 <p align="center"><img src="https://user-images.githubusercontent.com/17850202/264347872-8fd87cae-80dd-4721-b60a-dbc4578eadfc.png" width="260" alt="octojekyll"></p>
 
-[![](https://img.shields.io/github/actions/workflow/status/genhaiyu/jekyll-blog-routine-deploy-script/check-build.yml)](https://github.com/genhaiyu/jekyll-buildkit/blob/master/.github/workflows/check-build.yml)
-[![](https://img.shields.io/badge/CentOS_7%2C_Stream_8_x86%2F64-2aa198?style=flat&logo=github&logoColor=72f54a)]()
-[![](https://img.shields.io/badge/Ubuntu_20.04%2C_22.04.2_LTS%2C_23.04_x86%2F64-bb7a02?style=flat&logo=github&logoColor=4e3e51)]()
+[![](https://img.shields.io/github/actions/workflow/status/genhaiyu/jekyll-buildkit/check-build.yml)](https://github.com/genhaiyu/jekyll-buildkit/blob/master/.github/workflows/check-build.yml)
+[![](https://img.shields.io/badge/Ubuntu_20.04%2C_22.04_LTS_x86%2F64-bb7a02?style=flat&logo=github&logoColor=4e3e51)]()
 
-> After each commit to the repository (including private GitHub Pages repository), and execute this script on the remote server, subsequently it will be deployed and release a Jekyll blog which depends on if it's an initial server or regularly updates.
+> This buildkit is for deploying a fixed Jekyll build environment on Ubuntu.
+> It locks the Ruby version, and all dependencies must be compatible with this fixed toolchain.
+>
+> Uses **sassc** as the Sass engine.  
+> Gemfiles based on `sass-embedded` are not supported and may cause dependency issues.
 
 <p align="center"><img src="https://user-images.githubusercontent.com/17850202/265168014-41ed930f-dd74-4783-8104-c55f638b8338.gif" width="560" alt="deploying"/></p>
 
 ## Documentation
 
-Through running the script in a `jekyll` skeleton, it checks and installs the prerequisites that include `RVM`, `Ruby` and `Nginx`.
-Otherwise, it only updates, builds, deploys for routine.
+The fixed version of Ruby is **3.1.0**, and all gem versions are locked by `Gemfile.lock`.
 
-- Quick steps:
-  * Copy the [A Sample of Jekyll Blog](https://github.com/genhaiyu/jekyll-example) repository to a server, or choose a preferred Jekyll.
-  * Enter the repository directory on the server, and build this script to automatically initial or for routine updates.
+It installs the following components when initializing a new environment:
 
-```markdown
-curl -sSLO https://raw.githubusercontent.com/genhaiyu/jekyll-buildkit/master/buildkit.sh && chmod a+x deploy.sh && bash deploy.sh
+- RVM
+- Ruby **3.1.0**
+- Bundler
+- Jekyll
+- Nginx
+
+Otherwise, it works as a reproducible runtime for routine deployment (older runtime environment).
+
+## Quick start (Ubuntu)
+
+```bash
+curl -sSLO https://raw.githubusercontent.com/genhaiyu/jekyll-buildkit/master/buildkit.sh \
+  && chmod +x buildkit.sh \
+  && ./buildkit.sh
 ```
-
-## Encounter 403 on CentOS 7/8
-
-To deploy a site on CentOS 7/8, and the server should disable the SELINUX setting in the `/etc/selinux/config` file.
-Otherwise, the pages will give a `403 Forbidden` error.
-
-```markdown
-sudo vim /etc/selinux/config
-```
-
-Update `SELINUX=enforcing` to `SELINUX=disabled` in the `/etc/selinux/config` file, then reboot the system.
 
 ## License
 
