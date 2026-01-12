@@ -51,15 +51,6 @@ check_sys() {
   fi
 }
 
-reload_bundle() {
-  if [[ -d "./_site" ]]; then
-    bundle clean --force
-  fi
-  rvm use $DEFAULT_STABLE_VERSION
-  echo -e "${Green}Using Ruby ${DEFAULT_STABLE_VERSION} override current environment.${NC}"
-  bundle install
-}
-
 # Private repository, username and password required
 pull_git() {
   read -rp "Would like to keep the Git repository up to date (y/n)? " update
@@ -78,7 +69,7 @@ check_dir() {
     abort "Please place it in the Jekyll skeleton."
   fi
   # Always refresh the gems
-  rm -rf 'Gemfile.lock'
+  # rm -rf 'Gemfile.lock'
   pull_git
 }
 
@@ -95,14 +86,33 @@ check_rvm_env() {
     curl -sSL https://get.rvm.io | bash -s stable
   fi
   source '/etc/profile.d/rvm.sh'
+
   if ! [[ -f "/usr/local/rvm/rubies/ruby-$DEFAULT_STABLE_VERSION/bin/ruby" ]]; then
     echo -e "${Green}Starting install Ruby ${DEFAULT_STABLE_VERSION}...${NC}"
     rvm install $DEFAULT_STABLE_VERSION
   fi
 
-  jekyll_location="/usr/local/rvm/gems/ruby-$DEFAULT_STABLE_VERSION/bin/jekyll"
-  if ! [[ -f "$jekyll_location" ]]; then
-    gem install jekyll bundler
+  rvm use $DEFAULT_STABLE_VERSION
+  echo -e "${Green}Using Ruby ${DEFAULT_STABLE_VERSION} override current environment.${NC}"
+
+  # Compatible with Ruby 3.1.0
+  gem update --system 3.5.22 || true
+
+  # Compatible with Ruby 3.1.0
+  gem install bundler -v "~> 2.4" --no-document || true
+  gem install jekyll  -v "~> 4.4" --no-document || true
+
+}
+
+reload_bundle() {
+  bundle config set --local path vendor/bundle
+  # Keep the stable dependencies in the skeleton
+  if [[ -f "Gemfile.lock" ]]; then
+    bundle config set --local deployment true
+    bundle install
+  else
+    echo -e "${Blue}First time compiling the Gems.${NC}"
+    bundle install
   fi
 }
 
@@ -126,7 +136,7 @@ build_posted() {
 preview_url() {
   # Internal IP
   # ipv4=$(ip route get 1 | sed 's/^.*src \([^ ]*\).*$/\1/;q')
-  external_ipv4=$(curl -4 icanhazip.com)
+  external_ipv4=$(curl -4 -s icanhazip.com || true)
   preview="http://"$external_ipv4
 }
 
@@ -159,7 +169,7 @@ build_pre() {
   echo -e "${Green}Starting build Jekyll...${NC}"
   rm -rf _site/
   reload_bundle
-  jekyll build --source "$HOME"/"${PWD##*/}"
+  bundle exec jekyll build --source "$HOME"/"${PWD##*/}"
   if pgrep -x "nginx" >/dev/null; then
     sudo pkill -9 nginx
   fi
