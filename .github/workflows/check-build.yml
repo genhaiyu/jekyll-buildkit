@@ -20,7 +20,7 @@ jobs:
 
       - name: Check project
         run: |
-          mv -f jekyll-example/* /home/runner/work/jekyll-blog-routine-deploy-script/jekyll-blog-routine-deploy-script
+          mv -f jekyll-example/* /home/runner/work/jekyll-buildkit/jekyll-buildkit
           rm -rf jekyll-example/
       - name: Run script
-        run: chmod +x ./deploy.sh
+        run: chmod +x ./buildkit.sh
