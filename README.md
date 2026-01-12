@@ -16,6 +16,7 @@
 ## Documentation
 
 The fixed version of Ruby is **3.1.0**, and all gem versions are locked by `Gemfile.lock`.
+A reference [Gemfile](/runtime/Gemfile) is provided to define the compatible dependency gems.
 
 It installs the following components when initializing a new environment:
 
