@@ -1,4 +1,4 @@
-# A stable Jekyll build runtime for Ubuntu
+# A self-hosted Jekyll build runtime for Linux
 
 <p align="center"><img src="https://user-images.githubusercontent.com/17850202/264347872-8fd87cae-80dd-4721-b60a-dbc4578eadfc.png" width="260" alt="octojekyll"></p>
 
@@ -9,8 +9,8 @@
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04%20%7C%2022.04_LTS-859900?style=flat)
 ![License](https://img.shields.io/badge/License-GPLv3-586e75?style=flat)
 
-> The function is to provide a fixed Jekyll runtime for self-hosting on Linux,  
-> and is designed to manage the compile processes instead of relying on CI platforms.
+> The function is to provide a fixed Jekyll version for self-hosted on Linux,  
+> and manage the compile processes instead of relying on CI platforms.
 
 <p align="center"><img src="https://user-images.githubusercontent.com/17850202/265168014-41ed930f-dd74-4783-8104-c55f638b8338.gif" width="560" alt="deploying"/></p>
 
