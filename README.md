@@ -10,7 +10,7 @@
 ![Debian](https://img.shields.io/badge/Debian-10%20%7C%2011-b58900?style=flat)
 ![License](https://img.shields.io/badge/License-GPLv3-586e75?style=flat)
 
-> The function is to provide a fixed Jekyll version for self-hosted Linux servers(Ubuntu 20/22, Debian 10/11, CentOS 7/8), and manage the compile processes instead of relying on CI platforms.
+> The function is to provide a fixed Jekyll version for self-hosted Linux servers, and manage the compile processes instead of relying on CI platforms.
 
 <p align="center"><img src="https://user-images.githubusercontent.com/17850202/265168014-41ed930f-dd74-4783-8104-c55f638b8338.gif" width="560" alt="deploying"/></p>
 
