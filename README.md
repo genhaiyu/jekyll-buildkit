@@ -2,21 +2,22 @@
 
 <p align="center"><img src="https://user-images.githubusercontent.com/17850202/264347872-8fd87cae-80dd-4721-b60a-dbc4578eadfc.png" width="260" alt="octojekyll"></p>
 
-[![](https://img.shields.io/github/actions/workflow/status/genhaiyu/jekyll-buildkit/check-build.yml)](https://github.com/genhaiyu/jekyll-buildkit/blob/master/.github/workflows/check-build.yml)
-[![](https://img.shields.io/badge/Ubuntu_20.04%2C_22.04_LTS_x86%2F64-bb7a02?style=flat&logo=github&logoColor=4e3e51)]()
+![Self-Hosted](https://img.shields.io/badge/self--hosted-runtime-2aa198?style=flat)
+![Reproducible](https://img.shields.io/badge/reproducible-build-268bd2?style=flat)
+![Ruby](https://img.shields.io/badge/Ruby-3.1.0-b58900?style=flat)
+![Sass](https://img.shields.io/badge/Sass-sassc-6c71c4?style=flat)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04%20%7C%2022.04_LTS-859900?style=flat)
+![License](https://img.shields.io/badge/License-GPLv3-586e75?style=flat)
 
-> This buildkit is for deploying a fixed Jekyll build environment on Ubuntu.
-> It locks the Ruby version, and all dependencies must be compatible with this fixed toolchain.
->
-> Uses **sassc** as the Sass engine.  
-> Gemfiles based on `sass-embedded` are not supported and may cause dependency issues.
+> The function is to provide a fixed Jekyll runtime for self-hosting on Linux,  
+> and is designed to manage the compile processes instead of relying on CI platforms.
 
 <p align="center"><img src="https://user-images.githubusercontent.com/17850202/265168014-41ed930f-dd74-4783-8104-c55f638b8338.gif" width="560" alt="deploying"/></p>
 
 ## Documentation
 
 The fixed version of Ruby is **3.1.0**, and all gem versions are locked by `Gemfile.lock`.
-A reference [Gemfile](/runtime/Gemfile) is provided to define the compatible dependency gems.
+A reference [Gemfile](/runtime/Gemfile) includes the compatible dependency gems.
 
 It installs the following components when initializing a new environment:
 
@@ -35,6 +36,10 @@ curl -sSLO https://raw.githubusercontent.com/genhaiyu/jekyll-buildkit/master/bui
   && chmod +x buildkit.sh \
   && ./buildkit.sh
 ```
+
+## Notes
+
+Uses **sassc** as the Sass engine, and `sass-embedded` will cause dependency issues.
 
 ## License
 
