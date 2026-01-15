@@ -142,9 +142,13 @@ install_fixed_ruby() {
   # Output the fixed versions
   echo -e "${Blue}===> Installed manifests:${NC}"
   cd /
+  echo -n "ruby    : "
   "${RUBY_BIN}" -v
+  echo -n "rubygems: "
   "${GEM_BIN}" -v
+  echo -n "bundler : "
   "${BUNDLE_BIN}" -v
+  echo -n "jekyll  : "
   "${JEKYLL_BIN}" -v
   echo -e "${Blue}===> Installed manifests end.${NC}"
   cd "${PROJECT_DIR}"
@@ -163,6 +167,7 @@ reload_bundle() {
     "${BUNDLE_BIN}" config set --local without "development test" || true
     "${BUNDLE_BIN}" install
   else
+    "${BUNDLE_BIN}" config set --local deployment false || true
     echo -e "${Green}First time compiling the Gems.${NC}"
     "${BUNDLE_BIN}" install
   fi
