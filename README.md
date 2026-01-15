@@ -6,7 +6,7 @@
 ![Reproducible](https://img.shields.io/badge/reproducible-build-268bd2?style=flat)
 ![Ruby](https://img.shields.io/badge/Ruby-3.1.0-b58900?style=flat)
 ![Sass](https://img.shields.io/badge/Sass-sassc-6c71c4?style=flat)
-![Ubuntu-first](https://img.shields.io/badge/Ubuntu--first-20.04%20%7C%2022.04_LTS-859900?style=flat)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04%20%7C%2022.04_LTS-859900?style=flat)
 ![License](https://img.shields.io/badge/License-GPLv3-586e75?style=flat)
 
 > The function is to provide a fixed Jekyll version for self-hosted on Ubuntu, and manage the compile processes instead of relying on CI platforms.
