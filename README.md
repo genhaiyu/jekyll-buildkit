@@ -11,7 +11,7 @@
 
 > The function is to provide a fixed Jekyll version for self-hosted on Ubuntu, and manage the compile processes instead of relying on CI platforms.
 
-<p align="center"><img src="https://user-images.githubusercontent.com/17850202/265168014-41ed930f-dd74-4783-8104-c55f638b8338.gif" width="560" alt="deploying"/></p>
+<p align="center"><img src="https://raw.githubusercontent.com/genhaiyu/jekyll-buildkit/master/runtime/demo.gif" width="560" alt="runtime"/></p>
 
 ## Documentation
 
