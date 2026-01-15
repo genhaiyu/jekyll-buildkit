@@ -13,46 +13,64 @@ abort() {
   exit 1
 }
 
-DEFAULT_STABLE_VERSION="3.1.0"
-INSTALL_TYPE="dnf"
-# Tested on Ubuntu 20.04/22.04.2 LTS/23.04
-UBUNTU_VERSION="20.04"
-# Keys reference to https://rvm.io/rvm/security#install-our-keys
-RVM_KEYS="--recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB"
+PROJECT_DIR="$(pwd)"
 
-change_keys() {
-  GPG="gpg --keyserver hkp://keyserver.ubuntu.com $RVM_KEYS"
-}
+# Fixed Ruby version
+DEFAULT_RUBY_VERSION="3.1.0"
+# sha256sum ruby-3.1.0.tar.gz
+RUBY_TGZ_SHA256="50a0504c6edcb4d61ce6b8cfdbddaa95707195fab0ecd7b5e92654b2a9412854"
+# Only for compiler
+COMPILE_ROOT="/opt/jekyll-runtime"
+RUBY_PREFIX="${COMPILE_ROOT}/ruby-${DEFAULT_RUBY_VERSION}"
+RUBY_BIN="${RUBY_PREFIX}/bin/ruby"
+GEM_BIN="${RUBY_PREFIX}/bin/gem"
+BUNDLE_BIN="${RUBY_PREFIX}/bin/bundle"
+JEKYLL_BIN="${RUBY_PREFIX}/bin/jekyll"
+
+# Ruby tar
+RUBY_TAR="3.1"
+RUBY_TGZ="ruby-${DEFAULT_RUBY_VERSION}.tar.gz"
+RUBY_URL="https://cache.ruby-lang.org/pub/ruby/${RUBY_TAR}/${RUBY_TGZ}"
+
+# The dependency of versions for Ruby 3.1.0
+RUBYGEMS_VERSION="3.5.22"
+BUNDLER_VERSION="2.6.9"
+JEKYLL_VERSION="4.4.1"
+
+# Tested on Ubuntu 20.04/22.04.2/23.04 LTS
+UBUNTU_VERSION="20.04"
 
 compare_version() {
   perl -e "{if($1>=$2){print 1} else {print 0}}"
 }
 
 check_sys() {
+  local OS
   OS="$(uname)"
   if ! [[ "${OS}" = "Linux" ]]; then
     abort "$ERROR"
   fi
   if ! [[ $UID == 0 ]]; then
-      abort "Try to use root to do the following actions."
+    abort "Try to use root to do the following actions."
   fi
   source '/etc/os-release'
-  if [[ "${ID}" = "centos" && "${VERSION_ID}" == 8 ]]; then
-    GPG2="gpg2 --keyserver keys.openpgp.org $RVM_KEYS"
-    INSTALL_TYPE="yum"
-  elif [[ "${ID}" = "centos" && "${VERSION_ID}" == 7 ]]; then
-    change_keys
-    INSTALL_TYPE="yum"
-  elif [[ "${ID}" = "ubuntu" ]] && [[ "$(compare_version "${VERSION_ID}" $UBUNTU_VERSION)" == 1 ]]; then
-    INSTALL_TYPE="apt"
-    change_keys
-  else
-    abort "$ERROR"
+
+  # Converge to Ubuntu
+  if ! [[ "${ID}" = "ubuntu" ]]; then
+    abort "Current version is focusing on Ubuntu, and other branches are deprecated."
+  fi
+
+  if ! [[ "$(compare_version "${VERSION_ID}" $UBUNTU_VERSION)" == 1 ]]; then
+    abort "$ERROR Require Ubuntu >= ${UBUNTU_VERSION}."
   fi
 }
 
 # Private repository, username and password required
 pull_git() {
+  if ! command -v git >/dev/null 2>&1; then
+    echo -e "${Green}Git is not installed yet, skip git pull.${NC}"
+    return 0
+  fi
   read -rp "Would like to keep the Git repository up to date (y/n)? " update
   case "$update" in
   y | Y)
@@ -73,63 +91,103 @@ check_dir() {
   pull_git
 }
 
-check_rvm_env() {
+install_deps() {
+  echo -e "${Green}Installing system dependencies...${NC}"
+  apt-get update -y
+  apt-get install -y --no-install-recommends \
+    ca-certificates curl git build-essential pkg-config \
+    libssl-dev libreadline-dev zlib1g-dev libyaml-dev libffi-dev \
+    libgdbm-dev libncurses5-dev libncursesw5-dev libdb-dev \
+    xz-utils libsqlite3-dev libcurl4-openssl-dev ufw
+}
+
+install_fixed_ruby() {
   check_dir
   check_sys
 
-  if ! [[ -f "/usr/local/rvm/bin/rvm" ]]; then
-    if [[ "$INSTALL_TYPE" = "yum" || "$INSTALL_TYPE" = "apt" ]]; then
-      $GPG
-    else
-      $GPG2
-    fi
-    curl -sSL https://get.rvm.io | bash -s stable
+  if [[ -x "${RUBY_BIN}" ]]; then
+    echo -e "${Green}Ruby ${DEFAULT_RUBY_VERSION} already installed at ${RUBY_PREFIX}.${NC}"
+  else
+    echo -e "${Green}Installing Ruby ${DEFAULT_RUBY_VERSION} as detected in the initial environment...${NC}"
+    mkdir -p "${COMPILE_ROOT}"
+    install_deps
+    cd /tmp
+    rm -rf "ruby-${DEFAULT_RUBY_VERSION}" "${RUBY_TGZ}"*
+    curl -fsSLO "${RUBY_URL}"
+
+    # Verify
+    echo "${RUBY_TGZ_SHA256}  ${RUBY_TGZ}" | sha256sum -c - >/dev/null 2>&1 ||
+      abort "Ruby tarball SHA256 mismatch."
+
+    # Compiling
+    tar -xzf "${RUBY_TGZ}"
+    cd "ruby-${DEFAULT_RUBY_VERSION}"
+
+    ./configure --prefix="${RUBY_PREFIX}" --disable-install-doc
+    make -j"$(nproc)"
+    make install
+
+    cd /
+    rm -rf "/tmp/ruby-${DEFAULT_RUBY_VERSION}" "/tmp/${RUBY_TGZ}"
   fi
-  source '/etc/profile.d/rvm.sh'
 
-  if ! [[ -f "/usr/local/rvm/rubies/ruby-$DEFAULT_STABLE_VERSION/bin/ruby" ]]; then
-    echo -e "${Green}Starting install Ruby ${DEFAULT_STABLE_VERSION}...${NC}"
-    rvm install $DEFAULT_STABLE_VERSION
-  fi
+  export PATH="${RUBY_PREFIX}/bin:${PATH}"
 
-  rvm use $DEFAULT_STABLE_VERSION
-  echo -e "${Green}Using Ruby ${DEFAULT_STABLE_VERSION} override current environment.${NC}"
-
+  echo -e "${Green}Using Ruby ${DEFAULT_RUBY_VERSION} from ${RUBY_PREFIX}.${NC}"
   # Compatible with Ruby 3.1.0
-  gem update --system 3.5.22 || true
+  "${GEM_BIN}" update --system "${RUBYGEMS_VERSION}" || true
+  "${GEM_BIN}" install bundler -v "${BUNDLER_VERSION}" --no-document
+  "${GEM_BIN}" install jekyll -v "${JEKYLL_VERSION}" --no-document
 
-  # Compatible with Ruby 3.1.0
-  gem install bundler -v "~> 2.4" --no-document || true
-  gem install jekyll  -v "~> 4.4" --no-document || true
-
+  # Output the fixed versions
+  echo -e "${Blue}===> Installed manifests:${NC}"
+  cd /
+  "${RUBY_BIN}" -v
+  "${GEM_BIN}" -v
+  "${BUNDLE_BIN}" -v
+  "${JEKYLL_BIN}" -v
+  echo -e "${Blue}===> Installed manifests end.${NC}"
+  cd "${PROJECT_DIR}"
 }
 
 reload_bundle() {
-  bundle config set --local path vendor/bundle
+  export PATH="${RUBY_PREFIX}/bin:${PATH}"
+  cd "${PROJECT_DIR}"
+
+  # Dependencies of each skeleton
+  "${BUNDLE_BIN}" config set --local path vendor/bundle
+
   # Keep the stable dependencies in the skeleton
   if [[ -f "Gemfile.lock" ]]; then
-    bundle config set --local deployment true
-    bundle install
+    "${BUNDLE_BIN}" config set --local deployment true
+    "${BUNDLE_BIN}" config set --local without "development test" || true
+    "${BUNDLE_BIN}" install
   else
-    echo -e "${Blue}First time compiling the Gems.${NC}"
-    bundle install
+    echo -e "${Green}First time compiling the Gems.${NC}"
+    "${BUNDLE_BIN}" install
   fi
 }
 
 build_posted() {
-  if [[ $INSTALL_TYPE = "apt" ]]; then
-    rm -rf /var/www/html/*
-    mv "_site"/* "/var/www/html/"
-    elif [[ $INSTALL_TYPE = "yum" ]] || [[ $INSTALL_TYPE = "dnf" ]]; then
-      rm -rf /usr/share/nginx/html/*
-      mv "_site"/* "/usr/share/nginx/html/"
-         if [[ $INSTALL_TYPE = 'dnf' ]]; then
-              chcon -Rt httpd_sys_content_t "/usr/share/nginx/html/"
-         fi
+  rm -rf /var/www/html/*
+  mv "_site"/* "/var/www/html/"
+}
+
+check_firewall() {
+  if command -v firewall-cmd >/dev/null 2>&1; then
+    echo -e "${Green}Configuring firewall...${NC}"
+    firewall-cmd --permanent --add-service=http || true
+    firewall-cmd --permanent --add-service=https || true
+    firewall-cmd --reload || true
+  elif command -v ufw >/dev/null 2>&1; then
+    echo -e "${Green}Configuring ufw...${NC}"
+    ufw allow OpenSSH || true
+    ufw allow 80/tcp || true
+    ufw allow 443/tcp || true
+    ufw --force enable || true
   else
-    abort "$ERROR"
+    echo -e "${Blue}No initiated firewall tools detected (firewalld or ufw). Skipping...${NC}"
   fi
-  sudo systemctl start nginx
 }
 
 # curl -4/-6
@@ -144,40 +202,31 @@ check_nginx() {
   if [[ -f "/usr/sbin/nginx" ]]; then
     echo -e "${Green}Nginx is detected as installed, skip it.${NC}"
   else
-    if [[ "${ID}" = "centos" && "${VERSION_ID}" == 7 ]]; then
-      echo -e "${Green}Updating EPEL package due to detected is centos 7...${NC}"
-      sudo $INSTALL_TYPE install epel-release
-    fi
     echo -e "${Green}Starting install Nginx...${NC}"
-    if [[ $INSTALL_TYPE = "apt" ]] || [[ $INSTALL_TYPE = "yum" ]]; then
-        sudo $INSTALL_TYPE install nginx
-        sudo $INSTALL_TYPE install firewalld
-        sudo systemctl enable firewalld
-        sudo systemctl start firewalld
-    else
-        sudo $INSTALL_TYPE install nginx
-    fi
-    sudo firewall-cmd --permanent --add-service=http
-    sudo firewall-cmd --permanent --add-service=https
-    sudo firewall-cmd --reload
-    sudo systemctl enable nginx
+    apt-get update -y
+    apt-get install -y nginx
+    systemctl enable nginx
   fi
+
+  check_firewall
   build_posted
+  systemctl restart nginx
 }
 
 build_pre() {
   echo -e "${Green}Starting build Jekyll...${NC}"
   rm -rf _site/
   reload_bundle
-  bundle exec jekyll build --source "$HOME"/"${PWD##*/}"
+
+  "${BUNDLE_BIN}" exec "${JEKYLL_BIN}" build --source "$PWD"
   if pgrep -x "nginx" >/dev/null; then
-    sudo pkill -9 nginx
+    systemctl stop nginx || true
   fi
 }
 
 build_jekyll() {
   echo -e "${Green}Checking for Jekyll related dependencies.${NC}"
-  check_rvm_env
+  install_fixed_ruby
   build_pre
   check_nginx
   preview_url
