@@ -198,9 +198,8 @@ check_firewall() {
 # curl -4/-6
 preview_url() {
   # Internal IP
-  # ipv4=$(ip route get 1 | sed 's/^.*src \([^ ]*\).*$/\1/;q')
-  external_ipv4=$(curl -4 -s icanhazip.com || true)
-  preview="http://"$external_ipv4
+  ipv4=$(ip route get 1 | sed 's/^.*src \([^ ]*\).*$/\1/;q')
+  preview="http://"$ipv4
 }
 
 check_nginx() {
