@@ -15,7 +15,7 @@
 
 ## Documentation
 
-The fixed version of Ruby is **3.1.0**, and all gem versions are locked by `Gemfile.lock`.
+The fixed version of Ruby is **3.1.0**, and all gem versions are locked by `Gemfile.lock`.<br>
 A reference [Gemfile](/runtime/Gemfile) that includes the compatible dependency gems.
 
 It installs the following components when initializing a new environment:
@@ -37,7 +37,7 @@ curl -sSLO https://raw.githubusercontent.com/genhaiyu/jekyll-buildkit/master/bui
 
 ## Notes
 
-- Uses **sassc** as the Sass engine, and `sass-embedded` may cause dependency issues because of the older runtime environment.
+Uses **sassc** as the Sass engine, and `sass-embedded` may cause dependency issues because of the older runtime environment.
 
 ## License
 
