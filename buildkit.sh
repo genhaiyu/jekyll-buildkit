@@ -23,9 +23,9 @@ RUBY_TGZ_SHA256="50a0504c6edcb4d61ce6b8cfdbddaa95707195fab0ecd7b5e92654b2a941285
 COMPILE_ROOT="/opt/jekyll-runtime"
 RUBY_PREFIX="${COMPILE_ROOT}/ruby-${DEFAULT_RUBY_VERSION}"
 RUBY_BIN="${RUBY_PREFIX}/bin/ruby"
-GEM_BIN="${RUBY_PREFIX}/bin/gem"
-BUNDLE_BIN="${RUBY_PREFIX}/bin/bundle"
-JEKYLL_BIN="${RUBY_PREFIX}/bin/jekyll"
+# GEM_BIN="${RUBY_PREFIX}/bin/gem"
+# BUNDLE_BIN="${RUBY_PREFIX}/bin/bundle"
+# JEKYLL_BIN="${RUBY_PREFIX}/bin/jekyll"
 
 # Ruby tar
 RUBY_TAR="3.1"
@@ -42,6 +42,32 @@ UBUNTU_VERSION="20.04"
 
 compare_version() {
   perl -e "{if($1>=$2){print 1} else {print 0}}"
+}
+
+# Remove RVM on compiled machine
+reset_env_on_compiled() {
+  # Clean Ruby/RVM/Bundler
+  unset GEM_HOME GEM_PATH MY_RUBY_HOME IRBRC RUBYOPT RUBYLIB
+  unset rvm_path rvm_prefix rvm_bin_path rvm_version rvm_user_install_flag
+
+  unset BUNDLE_PATH BUNDLE_BIN BUNDLE_GEMFILE
+  unset BUNDLE_WITH BUNDLE_WITHOUT BUNDLE_DEPLOYMENT BUNDLE_FROZEN
+
+  export PATH="${RUBY_PREFIX}/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  hash -r
+}
+
+# Invoke Ruby to find gem/bundle/jekyll
+ruby_gem() {
+  "${RUBY_BIN}" -S gem "$@"
+}
+
+ruby_bundle() {
+  "${RUBY_BIN}" -S bundle "$@"
+}
+
+ruby_jekyll() {
+  "${RUBY_BIN}" -S jekyll "$@"
 }
 
 check_sys() {
@@ -84,7 +110,7 @@ pull_git() {
 
 check_dir() {
   if ! [[ -e "Gemfile" ]]; then
-    abort "Please place it in the Jekyll skeleton."
+    abort "The Jekyll skeleton has to include the Gemfile and site structure."
   fi
   # Always refresh the gems
   # rm -rf 'Gemfile.lock'
@@ -98,19 +124,21 @@ install_deps() {
     ca-certificates curl git build-essential pkg-config \
     libssl-dev libreadline-dev zlib1g-dev libyaml-dev libffi-dev \
     libgdbm-dev libncurses5-dev libncursesw5-dev libdb-dev \
-    xz-utils libsqlite3-dev libcurl4-openssl-dev ufw
+    xz-utils libsqlite3-dev libcurl4-openssl-dev
 }
 
 install_fixed_ruby() {
   check_dir
   check_sys
 
+  mkdir -p "${COMPILE_ROOT}"
+  # For compiled machine
+  install_deps
+
   if [[ -x "${RUBY_BIN}" ]]; then
     echo -e "${Green}Ruby ${DEFAULT_RUBY_VERSION} already installed at ${RUBY_PREFIX}.${NC}"
   else
     echo -e "${Green}Installing Ruby ${DEFAULT_RUBY_VERSION} as detected in the initial environment...${NC}"
-    mkdir -p "${COMPILE_ROOT}"
-    install_deps
     cd /tmp
     rm -rf "ruby-${DEFAULT_RUBY_VERSION}" "${RUBY_TGZ}"*
     curl -fsSLO "${RUBY_URL}"
@@ -131,45 +159,43 @@ install_fixed_ruby() {
     rm -rf "/tmp/ruby-${DEFAULT_RUBY_VERSION}" "/tmp/${RUBY_TGZ}"
   fi
 
-  export PATH="${RUBY_PREFIX}/bin:${PATH}"
+  # Reset RVM on compiled machine
+  reset_env_on_compiled
 
   echo -e "${Green}Using Ruby ${DEFAULT_RUBY_VERSION} from ${RUBY_PREFIX}.${NC}"
   # Compatible with Ruby 3.1.0
-  "${GEM_BIN}" update --system "${RUBYGEMS_VERSION}" || true
-  "${GEM_BIN}" install bundler -v "${BUNDLER_VERSION}" --no-document
-  "${GEM_BIN}" install jekyll -v "${JEKYLL_VERSION}" --no-document
+  ruby_gem update --system "${RUBYGEMS_VERSION}" || true
+  ruby_gem install bundler -v "${BUNDLER_VERSION}" --no-document
+  ruby_gem install jekyll -v "${JEKYLL_VERSION}" --no-document
 
   # Output the fixed versions
   echo -e "${Blue}===> Installed manifests:${NC}"
   cd /
-  echo -n "ruby    : "
-  "${RUBY_BIN}" -v
-  echo -n "rubygems: "
-  "${GEM_BIN}" -v
-  echo -n "bundler : "
-  "${BUNDLE_BIN}" -v
-  echo -n "jekyll  : "
-  "${JEKYLL_BIN}" -v
+  echo -n "ruby    : " && "${RUBY_BIN}" -v
+  echo -n "rubygems: " && ruby_gem -v
+  echo -n "bundler : " && ruby_bundle -v
+  echo -n "jekyll  : " && ruby_jekyll -v
   echo -e "${Blue}===> Installed manifests end.${NC}"
   cd "${PROJECT_DIR}"
 }
 
 reload_bundle() {
-  export PATH="${RUBY_PREFIX}/bin:${PATH}"
   cd "${PROJECT_DIR}"
+  # Clean
+  reset_env_on_compiled
 
   # Dependencies of each skeleton
-  "${BUNDLE_BIN}" config set --local path vendor/bundle
+  ruby_bundle config set --local path vendor/bundle
 
   # Keep the stable dependencies in the skeleton
   if [[ -f "Gemfile.lock" ]]; then
-    "${BUNDLE_BIN}" config set --local deployment true
-    "${BUNDLE_BIN}" config set --local without "development test" || true
-    "${BUNDLE_BIN}" install
+    ruby_bundle config set --local deployment true
+    ruby_bundle config set --local without "development test" || true
+    ruby_bundle install
   else
-    "${BUNDLE_BIN}" config set --local deployment false || true
+    ruby_bundle config set --local deployment false || true
     echo -e "${Green}First time compiling the Gems.${NC}"
-    "${BUNDLE_BIN}" install
+    ruby_bundle install
   fi
 }
 
@@ -198,12 +224,20 @@ check_firewall() {
 # curl -4/-6
 preview_url() {
   # Internal IP
-  ipv4=$(ip route get 1 | sed 's/^.*src \([^ ]*\).*$/\1/;q')
-  preview="http://"$ipv4
+  local ipv4
+  ipv4="$(ip route get 1 2>/dev/null | sed 's/^.*src \([^ ]*\).*$/\1/;q' || true)"
+
+  if [[ -z "${ipv4}" ]]; then
+    ipv4="$(hostname -I 2>/dev/null | awk '{print $1; exit}' || true)"
+  fi
+  if [[ -z "${ipv4}" ]]; then
+    ipv4="$(curl -4 -s icanhazip.com 2>/dev/null || true)"
+  fi
+  preview="http://${ipv4}"
 }
 
 check_nginx() {
-  if [[ -f "/usr/sbin/nginx" ]]; then
+  if command -v nginx >/dev/null 2>&1; then
     echo -e "${Green}Nginx is detected as installed, skip it.${NC}"
   else
     echo -e "${Green}Starting install Nginx...${NC}"
@@ -214,18 +248,19 @@ check_nginx() {
 
   check_firewall
   build_posted
-  systemctl restart nginx
+  systemctl reload nginx || systemctl restart nginx
 }
 
 build_pre() {
   echo -e "${Green}Starting build Jekyll...${NC}"
   rm -rf _site/
   reload_bundle
+  reset_env_on_compiled
 
-  "${BUNDLE_BIN}" exec "${JEKYLL_BIN}" build --source "$PWD"
-  if pgrep -x "nginx" >/dev/null; then
-    systemctl stop nginx || true
-  fi
+  ruby_bundle exec jekyll build --source "$PWD"
+  # if pgrep -x "nginx" >/dev/null; then
+  #  systemctl stop nginx || true
+  # fi
 }
 
 build_jekyll() {
