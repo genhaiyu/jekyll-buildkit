@@ -27,13 +27,15 @@ It installs the following components when initializing a new environment:
 
 Otherwise, it works as a reproducible runtime for routine deployment.
 
-## Run inside the Jekyll skeleton
+## Execute in a Jekyll skeleton
 
 ```bash
 curl -sSLO https://raw.githubusercontent.com/genhaiyu/jekyll-buildkit/master/buildkit.sh \
   && chmod +x buildkit.sh \
   && ./buildkit.sh
 ```
+
+-  [jekyll-example](https://github.com/genhaiyu/jekyll-example) is for preview deployment, or choose another preferred Jekyll.
 
 ## Notes
 
