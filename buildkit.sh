@@ -110,7 +110,7 @@ pull_git() {
 
 check_dir() {
   if ! [[ -e "Gemfile" ]]; then
-    abort "The Jekyll skeleton has to include the Gemfile and site structure."
+    abort "To execute the runtime, it needs to be inside the Jekyll structure."
   fi
   # Always refresh the gems
   # rm -rf 'Gemfile.lock'
